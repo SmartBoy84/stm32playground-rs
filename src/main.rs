@@ -29,7 +29,7 @@ async fn main(_spawner: Spawner) {
     let mut sd_cs = Output::new(dp.PC14, Level::High, Speed::High);
     let mut radio_cs = Output::new(dp.PB6, Level::High, Speed::High);
     let mut mem_cs = Output::new(dp.PC13, Level::High, Speed::High);
-    let mut baro_cs = Output::new(dp.PA9, Level::High, Speed::High);
+    let mut baro_cs = Output::new(dp.PA9, Level::Low, Speed::High);
 
     let _accel2_int2 = Input::new(dp.PA10, Pull::Down); // active high
 
