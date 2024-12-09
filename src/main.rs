@@ -29,7 +29,7 @@ async fn main(_spawner: Spawner) {
     let mut sd_cs = Output::new(dp.PC14, Level::High, Speed::High);
     let mut radio_cs = Output::new(dp.PB6, Level::High, Speed::High);
     let mut mem_cs = Output::new(dp.PC13, Level::High, Speed::High);
-    let mut baro_cs = Output::new(dp.PA9, Level::Low, Speed::High);
+    let mut baro_cs = Output::new(dp.PA9, Level::High, Speed::High);
 
     let _accel2_int2 = Input::new(dp.PA10, Pull::Down); // active high
 
@@ -60,42 +60,43 @@ async fn main(_spawner: Spawner) {
     // 3.11: Direct memory access (DMA) channels allow data buffering with no cpu overhead(?), necessary for async => todo; read more
     // mean that MCU itself doesn't have to waste time reading - interrupt raised once DMA buffer filled
 
-    // {
-    //     info!("resetting and testing adxl");
-    //     // ADXL test
-    //     let spi_2 = spi_2.get_mut();
+    {
+        info!("resetting and testing adxl");
 
-    //     // ADXL "driver" from datasheet + here: https://github.com/adafruit/Adafruit_ADXL375/blob/master/Adafruit_ADXL375.cpp
-    //     accel2_cs.set_low(); // enable forever
+        // ADXL test
+        let spi_2 = spi_2.get_mut();
 
-    //     // reset configs as per register map
+        // ADXL "driver" from datasheet + here: https://github.com/adafruit/Adafruit_ADXL375/blob/master/Adafruit_ADXL375.cpp
+        accel2_cs.set_low(); // enable forever
 
-    //     let write_buf = [(0x31u8 & 0x7Fu8), 0];
+        // reset configs as per register map
 
-    //     spi_2.blocking_write(&write_buf).unwrap();
+        let write_buf = [(0x31u8 & 0x7Fu8), 0];
 
-    //     for register in 0x1du8..=0x2a {
-    //         spi_2.blocking_write(&[register, 0u8]).unwrap();
-    //     }
+        spi_2.blocking_write(&write_buf).unwrap();
 
-    //     let write_buf = [(0x2Cu8 & 0x7Fu8), 0x0a];
-    //     spi_2.blocking_write(&write_buf).unwrap();
+        for register in 0x1du8..=0x2a {
+            spi_2.blocking_write(&[register, 0u8]).unwrap();
+        }
 
-    //     for register in 0x2du8..=0x2f {
-    //         spi_2.blocking_write(&[register, 0u8]).unwrap();
-    //     }
+        let write_buf = [(0x2Cu8 & 0x7Fu8), 0x0a];
+        spi_2.blocking_write(&write_buf).unwrap();
 
-    //     let write_buf = [(0x38u8 & 0x7Fu8), 0];
-    //     spi_2.blocking_write(&write_buf).unwrap();
+        for register in 0x2du8..=0x2f {
+            spi_2.blocking_write(&[register, 0u8]).unwrap();
+        }
 
-    //     // get device id
-    //     let mut read_buf = [0u8, 0u8];
-    //     let write_buf = [(0x0 & 0x7Fu8 | 0x80u8), 0u8];
-    //     spi_2.blocking_transfer(&mut read_buf, &write_buf).unwrap();
-    //     assert_eq!(read_buf[0], 0b11100101);
+        let write_buf = [(0x38u8 & 0x7Fu8), 0];
+        spi_2.blocking_write(&write_buf).unwrap();
 
-    //     info!("Successfully connected to accelerometer!");
-    // }
+        // get device id
+        let mut read_buf = [0u8, 0u8];
+        let write_buf = [(0x0 & 0x7Fu8 | 0x80u8), 0u8];
+        spi_2.blocking_transfer(&mut read_buf, &write_buf).unwrap();
+        assert_eq!(read_buf[0], 0b11100101);
+
+        info!("Successfully connected to accelerometer!");
+    }
 
     // stm32f302cb does not have a dedicated sd card host controller - limited to one bit mode (SPI mode)
     sd_cs.set_high();
