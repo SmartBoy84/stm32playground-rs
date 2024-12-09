@@ -1,5 +1,5 @@
 [package]
-name = "stm32embassy"
+name = "stm32playground-rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -27,6 +27,6 @@ defmt-rtt = "0.4.1"
 embedded-sdmmc = {version = "0.8.1", default-features = false, features = ["defmt-log"]}
 
 [[bin]]
-name = "stm32embassy"
+name = "stm32playground-rs"
 test = false
 bench = false

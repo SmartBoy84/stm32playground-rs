@@ -12,7 +12,7 @@ use embassy_stm32::{
     spi::{self},
 };
 use embassy_sync::blocking_mutex::{raw::NoopRawMutex, Mutex};
- // TODO; look at crates.md for warning
+// TODO; look at crates.md for warning
 use {defmt_rtt as _, panic_probe as _};
 
 // Entry point
@@ -92,19 +92,22 @@ async fn main(_spawner: Spawner) {
     }
 
     // stm32f302cb does not have a dedicated sd card host controller - limited to one bit mode (SPI mode)
-    sd_cs.set_low();
+    sd_cs.set_high();
     let sd_spi = embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(&spi_3, accel2_cs);
     // let sd_spi = embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(&spi_3, sd_cs);
 
     // ez pz - this struct manages the enable pin (configurable), and bus mutex for us!
     // use SpiDeviceWithConfig if Cs active state (or write freq) varies for different devices
-
+    let cp = cortex_m::Peripherals::take().unwrap();
+    
     let sd_card = embedded_sdmmc::SdCard::new(sd_spi, embassy_time::Delay);
+    // embassy_time::Delay is just a bridge between embassy_time and embedded_hal traits
 
     // holy fragole it compiled ma!
     // let sd_type = sd_card
     //     .get_card_type()
     //     .expect("Failed to interface with sd card");
+
     let t = sd_card.get_card_type();
     info!("{:?}", t);
     info!("Here")

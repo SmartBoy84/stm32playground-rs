@@ -1,1 +1,1 @@
-cargo fix --bin stm32embassy --allow-no-vcs
+cargo fix --bin stm32playground-rs --allow-no-vcs
