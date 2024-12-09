@@ -1,0 +1,32 @@
+[package]
+name = "stm32embassy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# CPU specific imports
+cortex-m = {version = "0.7.7", features = ["critical-section-single-core"]}
+cortex-m-rt = "0.7.5"
+
+# Embassy imports
+embassy-executor = {version = "0.6.3", features = ["arch-cortex-m", "executor-thread", "integrated-timers"]}
+embassy-stm32 = {version = "0.1.0", features = ["defmt", "stm32f302cb", "memory-x", "time-driver-any", "unstable-pac"]}
+embassy-time = {version = "0.3.2", features = ["tick-hz-32_768"]}
+embassy-sync = "0.6.1"
+
+# Embassy-embedded_hal interop
+embedded-hal = "1.0.0"
+embassy-embedded-hal = "0.2.0"
+
+# Logging
+defmt = "0.3.10"
+panic-probe = "0.3.2"
+defmt-rtt = "0.4.1"
+
+# sd
+embedded-sdmmc = {version = "0.8.1", default-features = false, features = ["defmt-log"]}
+
+[[bin]]
+name = "stm32embassy"
+test = false
+bench = false

@@ -1,0 +1,1 @@
+cargo fix --bin stm32embassy --allow-no-vcs

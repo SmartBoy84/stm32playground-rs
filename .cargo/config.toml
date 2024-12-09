@@ -1,0 +1,14 @@
+[build]
+target = "thumbv7em-none-eabi"
+
+[target.thumbv7em-none-eabi]
+runner = "probe-rs run --connect-under-reset --chip STM32F302CBTx"
+rustflags = ["-C", "link-args=-Tlink.x -Tdefmt.x"]
+# all provided by dependencies - black magic => what do they do, where are they documented?
+
+#rustflags = [ "-C", "link-arg=-Tlink.x"]
+## not [needed](https://docs.embassy.dev/embassy-stm32/git/stm32c011d6/index.html#:~:text=memory.x%20file%20using-,stm32%2Dmetapac)
+
+[env]
+DEFMT_LOG = "trace" # trace is lowest logging level - higher ones automatically enabled
+# https://defmt.ferrous-systems.com/filtering.html
