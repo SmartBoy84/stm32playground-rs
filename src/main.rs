@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use core::cell::RefCell;
+use core::{cell::RefCell, panic, str};
 
 use defmt::info;
 use embassy_executor::{main, Spawner};
@@ -16,6 +16,9 @@ use embedded_sdmmc::{BlockDevice, TimeSource, Timestamp, VolumeIdx, VolumeManage
 // TODO; look at crates.md for warning
 use {defmt_rtt as _, panic_probe as _};
 
+const SD_TEST_FILE: &str = "test.txt";
+const SD_TEST_STR: &str = "Hello world!";
+
 // Entry point
 #[main]
 async fn main(_spawner: Spawner) {
@@ -27,7 +30,7 @@ async fn main(_spawner: Spawner) {
     // chip selects - set all to inactive state
     let _accel1_cs = Output::new(dp.PC15, Level::High, Speed::High);
     let mut accel2_cs = Output::new(dp.PB2, Level::High, Speed::High);
-    let mut sd_cs = Output::new(dp.PC14, Level::High, Speed::High);
+    let sd_cs = Output::new(dp.PC14, Level::High, Speed::High);
     let _radio_cs = Output::new(dp.PB6, Level::High, Speed::High);
     let _mem_cs = Output::new(dp.PC13, Level::High, Speed::High);
     let _baro_cs = Output::new(dp.PA9, Level::High, Speed::High);
@@ -99,65 +102,62 @@ async fn main(_spawner: Spawner) {
         info!("Successfully connected to accelerometer!");
     }
 
-    // stm32f302cb does not have a dedicated sd card host controller - limited to one bit mode (SPI mode)
-    sd_cs.set_high();
-    let sd_spi = embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(&spi_3, sd_cs);
-    // let sd_spi = embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(&spi_3, sd_cs);
+    {
+        // stm32f302cb does not have a dedicated sd card host controller - limited to one bit mode (SPI mode)
+        let sd_spi = embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(&spi_3, sd_cs);
+        // let sd_spi = embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(&spi_3, sd_cs);
 
-    // ez pz - this struct manages the enable pin (configurable), and bus mutex for us!
-    // use SpiDeviceWithConfig if Cs active state (or write freq) varies for different devices
+        // ez pz - this struct manages the enable pin (configurable), and bus mutex for us!
+        // use SpiDeviceWithConfig if Cs active state (or write freq) varies for different devices
 
-    let sd_card = embedded_sdmmc::SdCard::new(sd_spi, embassy_time::Delay);
-    // embassy_time::Delay is just a bridge between embassy_time and embedded_hal traits
+        let sd_card = embedded_sdmmc::SdCard::new(sd_spi, embassy_time::Delay);
+        // embassy_time::Delay is just a bridge between embassy_time and embedded_hal traits
 
-    // holy fragole it compiled ma!
-    info!(
-        "Connected to {:?}; {:?} bytes; {:?} blocks",
-        sd_card
-            .get_card_type()
-            .expect("Failed to connect to sd card"),
-        sd_card.num_blocks().unwrap(),
-        sd_card.num_bytes().unwrap()
-    );
-    // sd card benchmark - https://www.jblopen.com/sd-card-benchmarks/
+        // holy fragole it compiled ma!
+        info!(
+            "Connected to {:?}; {:?} bytes; {:?} blocks",
+            sd_card
+                .get_card_type()
+                .expect("Failed to connect to sd card"),
+            sd_card.num_blocks().unwrap(),
+            sd_card.num_bytes().unwrap()
+        );
+        // sd card benchmark - https://www.jblopen.com/sd-card-benchmarks/
 
-    // let rtc = rtc::Rtc::new(dp.RTC, RtcConfig::default()); // <-- this is not accurate at all so for now...
-    // let vol_mgr = VolumeManager::new(block_device, time_source);
-    struct DummyTimeSource;
-    impl TimeSource for DummyTimeSource {
-        fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
-            Timestamp {
-                year_since_1970: 0,
-                zero_indexed_month: 0,
-                zero_indexed_day: 0,
-                hours: 0,
-                minutes: 0,
-                seconds: 0,
+        // let rtc = rtc::Rtc::new(dp.RTC, RtcConfig::default()); // <-- this is not accurate at all so for now...
+        // let vol_mgr = VolumeManager::new(block_device, time_source);
+        struct DummyTimeSource;
+        impl TimeSource for DummyTimeSource {
+            fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
+                Timestamp {
+                    year_since_1970: 0,
+                    zero_indexed_month: 0,
+                    zero_indexed_day: 0,
+                    hours: 0,
+                    minutes: 0,
+                    seconds: 0,
+                }
             }
         }
-    }
-    // VolumeManager needs this to write correct timestamps on files - pshaw! who needs timestamps
-    let mut vol_mgr = VolumeManager::new(sd_card, DummyTimeSource);
-    let mut vol0 = vol_mgr
-        .open_volume(VolumeIdx(0))
-        .expect("No volumes on sd card");
+        // VolumeManager needs this to write correct timestamps on files - pshaw! who needs timestamps
+        let mut vol_mgr = VolumeManager::new(sd_card, DummyTimeSource);
+        let mut vol0 = vol_mgr
+            .open_volume(VolumeIdx(0))
+            .expect("No volumes on sd card");
 
-    let mut root_dir = vol0.open_root_dir().unwrap();
-    let mut test_file = root_dir
-        .open_file_in_dir("test.txt", embedded_sdmmc::Mode::ReadOnly)
-        .unwrap();
+        let mut root_dir = vol0.open_root_dir().unwrap();
 
-    // alas, no allocator - bit by bit reading
-    // let mut s = String::<15>::new(); // Hello world!
-    // unsafe { test_file.read(&mut s.as_bytes_mut()).unwrap() };
-    // info!("Read: {}", s.as_str());
+        // alas, no allocator - bit by bit reading
+        let mut test_buffer = [0u8; 12]; // "hello world!"
 
-    while !test_file.is_eof() {
-        let mut buffer = [0u8; 32];
-        let num_read = test_file.read(&mut buffer).unwrap();
-        for b in &buffer[0..num_read] {
-            info!("{}", *b as char);
-        }
+        let mut test_file = root_dir
+            .open_file_in_dir(SD_TEST_FILE, embedded_sdmmc::Mode::ReadOnly)
+            .unwrap();
+
+        test_file.read(&mut test_buffer).unwrap();
+
+        assert_eq!(str::from_utf8(&test_buffer), Ok(SD_TEST_STR));
+        info!("Passed write test");
     }
 
     // loop {

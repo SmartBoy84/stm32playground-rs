@@ -10,6 +10,7 @@ opt-level = "z" # optimise for size - https://github.com/johnthagen/min-sized-ru
 incremental = false
 codegen-units = 1
 debug = true
+# debug = 2
 # panic = "abort" # no substantial savings
 
 [dependencies]
@@ -29,8 +30,8 @@ embassy-embedded-hal = "0.2.0"
 
 # Logging
 defmt = "0.3.10"
-panic-probe = "0.3.2"
 defmt-rtt = "0.4.1"
+panic-probe = {version = "0.3.2", features = ["print-defmt"]}
 
 # sd
 embedded-sdmmc = {version = "0.8.1", default-features = false, features = ["defmt-log"]}
