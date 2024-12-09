@@ -10,6 +10,7 @@ Note, pete used an active buzzer - buzzer has inbuilt oscillator so produces a p
 
 ## SD Card
 stm32f302cb does not have a dedicated sd card host controller => limited to one bit mode (SPI mode)
+God damn! This is quite large - I needed to switch to `--release` flag to get it to fit  
 - CS: PC14
 
 # SPI Bus 2

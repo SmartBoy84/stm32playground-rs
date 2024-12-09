@@ -12,6 +12,7 @@ use embassy_stm32::{
     spi::{self},
 };
 use embassy_sync::blocking_mutex::{raw::NoopRawMutex, Mutex};
+use embedded_sdmmc::{BlockDevice, TimeSource, Timestamp, VolumeIdx, VolumeManager};
 // TODO; look at crates.md for warning
 use {defmt_rtt as _, panic_probe as _};
 
@@ -24,12 +25,12 @@ async fn main(_spawner: Spawner) {
     // is there no standard active state (high/low) for spi devices?
     info!("Initialising cs psins");
     // chip selects - set all to inactive state
-    let mut accel1_cs = Output::new(dp.PC15, Level::High, Speed::High);
-    let mut accel2_cs = Output::new(dp.PB2, Level::High, Speed::High); // adxl is active low
+    let _accel1_cs = Output::new(dp.PC15, Level::High, Speed::High);
+    let mut accel2_cs = Output::new(dp.PB2, Level::High, Speed::High);
     let mut sd_cs = Output::new(dp.PC14, Level::High, Speed::High);
-    let mut radio_cs = Output::new(dp.PB6, Level::High, Speed::High);
-    let mut mem_cs = Output::new(dp.PC13, Level::High, Speed::High);
-    let mut baro_cs = Output::new(dp.PA9, Level::High, Speed::High);
+    let _radio_cs = Output::new(dp.PB6, Level::High, Speed::High);
+    let _mem_cs = Output::new(dp.PC13, Level::High, Speed::High);
+    let _baro_cs = Output::new(dp.PA9, Level::High, Speed::High);
 
     let _accel2_int2 = Input::new(dp.PA10, Pull::Down); // active high
 
@@ -105,20 +106,63 @@ async fn main(_spawner: Spawner) {
 
     // ez pz - this struct manages the enable pin (configurable), and bus mutex for us!
     // use SpiDeviceWithConfig if Cs active state (or write freq) varies for different devices
-    let cp = cortex_m::Peripherals::take().unwrap();
 
-    info!("Here");
     let sd_card = embedded_sdmmc::SdCard::new(sd_spi, embassy_time::Delay);
     // embassy_time::Delay is just a bridge between embassy_time and embedded_hal traits
 
     // holy fragole it compiled ma!
-    // let sd_type = sd_card
-    //     .get_card_type()
-    //     .expect("Failed to interface with sd card");
+    info!(
+        "Connected to {:?}; {:?} bytes; {:?} blocks",
+        sd_card
+            .get_card_type()
+            .expect("Failed to connect to sd card"),
+        sd_card.num_blocks().unwrap(),
+        sd_card.num_bytes().unwrap()
+    );
+    // sd card benchmark - https://www.jblopen.com/sd-card-benchmarks/
 
-    let t = sd_card.get_card_type().unwrap();
-    info!("tHere");
+    // let rtc = rtc::Rtc::new(dp.RTC, RtcConfig::default()); // <-- this is not accurate at all so for now...
+    // let vol_mgr = VolumeManager::new(block_device, time_source);
+    struct DummyTimeSource;
+    impl TimeSource for DummyTimeSource {
+        fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
+            Timestamp {
+                year_since_1970: 0,
+                zero_indexed_month: 0,
+                zero_indexed_day: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0,
+            }
+        }
+    }
+    // VolumeManager needs this to write correct timestamps on files - pshaw! who needs timestamps
+    let mut vol_mgr = VolumeManager::new(sd_card, DummyTimeSource);
+    let mut vol0 = vol_mgr
+        .open_volume(VolumeIdx(0))
+        .expect("No volumes on sd card");
 
-    info!("{:?}", t);
-    info!("Here")
+    let mut root_dir = vol0.open_root_dir().unwrap();
+    let mut test_file = root_dir
+        .open_file_in_dir("test.txt", embedded_sdmmc::Mode::ReadOnly)
+        .unwrap();
+
+    // alas, no allocator - bit by bit reading
+    // let mut s = String::<15>::new(); // Hello world!
+    // unsafe { test_file.read(&mut s.as_bytes_mut()).unwrap() };
+    // info!("Read: {}", s.as_str());
+
+    while !test_file.is_eof() {
+        let mut buffer = [0u8; 32];
+        let num_read = test_file.read(&mut buffer).unwrap();
+        for b in &buffer[0..num_read] {
+            info!("{}", *b as char);
+        }
+    }
+
+    // loop {
+    //     info!("{:?}", rtc.now().unwrap().second());
+    //     Timer::after_secs(1).await;
+    // }
+    // let vol_mgr = VolumeManager::new(sd_card, TimeSource);
 }
