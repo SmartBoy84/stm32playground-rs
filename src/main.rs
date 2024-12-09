@@ -22,7 +22,7 @@ async fn main(_spawner: Spawner) {
 
     // ask pete about gpio::Speed - https://medium.com/@aliaksandr.kavalchuk/the-gpio-output-speed-whats-behind-this-parameter-dcceaa351875
     // is there no standard active state (high/low) for spi devices?
-    info!("Initialising cs pins");
+    info!("Initialising cs psins");
     // chip selects - set all to inactive state
     let mut accel1_cs = Output::new(dp.PC15, Level::High, Speed::High);
     let mut accel2_cs = Output::new(dp.PB2, Level::High, Speed::High); // adxl is active low
