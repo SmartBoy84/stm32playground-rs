@@ -33,9 +33,12 @@ defmt = "0.3.10"
 defmt-rtt = "0.4.1"
 panic-probe = {version = "0.3.2", features = ["print-defmt"]}
 
-# sd
+# storage
 embedded-sdmmc = {version = "0.8.1", default-features = false, features = ["defmt-log"]}
-heapless = "0.8.0"
+w25q = "0.2.9"
+
+# radio
+lora-phy = "3.0.1"
 
 [[bin]]
 # else vscode shows warnings about missing test cases

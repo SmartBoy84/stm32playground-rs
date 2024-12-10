@@ -5,14 +5,34 @@ Read [this](https://mcyoung.xyz/2021/06/01/linker-script/)
 
 [Comparison](https://willhart.io/post/embedded-rust-options/)
 
+# Cortex-M-rt
+    use cortex-m crate => "provides start code and minimal runtime for C-M based MCUs"
+    TODO: experiment with other places to store (checkout memory map and "advanced usage")
+
+# Cortex-M
+Provides low level access to Cortex-M processor
+    Shouldn't really have to use this
+Most importantly, provides a critical section implementation - this is why it's used
+Critical section contains code that is run by multiple threads
+    Contains shared variables (think global variables)
+
+# rtt_target
+IO from MCU -> debug probe -> computer'
+
+
 # Panic-probe
-Automatically exits probe-run on panic  
+`panic-probe = {version = "0.3.2", features = ["print-defmt"]}`  
+Embedded panic handler  
+Automatically exits probe-run on panic   
+
+## Features  
+- `print-defmt`: pretty clear; instruct it to output messages using defmt
 
 # defmt-rtt
 src: https://defmt.ferrous-systems.com/setup.html#global_logger  
-defmt requires application link to a `global_logger`  
+defmt crate requires application link to a `global_logger`  
 Most debug probes (including st-link) support rtt-protocol   
-=> Use defmt-rtt
+=> Use defmt-rtt -> provides a `global_logger` compatible with defmt
 
 # Emabssy-stm32
 `embassy-stm32 = {version = "0.1.0", features = ["defmt", "stm32f302cbtx", "memory-x", "time-driver-any"]}`
@@ -70,6 +90,6 @@ Also I use `blocking_mutex` as so I can use embedded_hal crates (only blocking S
 
 # embedded_sdmmc  
 `embedded-sdmmc = {version = "0.8.1", default-features = false, features = ["defmt-log"]}`  
-# Features  
+##  Features  
 - `defmt-log`: required for printing various info (e.g., CardType)
 - `default-features = false`: `log` feature enabled by default but incompatible with `defmt-log`
